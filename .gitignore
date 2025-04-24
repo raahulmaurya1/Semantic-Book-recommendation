@@ -13,3 +13,4 @@ venv/
 # Ignore Streamlit secrets file
 .streamlit/secrets.toml
 secrets.toml
+secrets.toml
