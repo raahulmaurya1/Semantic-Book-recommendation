@@ -1,0 +1,14 @@
+.env
+ssh.txt.pub
+ssh.txt.env
+.env
+# Ignore Python bytecode
+__pycache__/
+*.pyc
+
+# Ignore virtual environment directories
+venv/
+.env/
+
+# Ignore Streamlit secrets file
+.streamlit/secrets.toml
