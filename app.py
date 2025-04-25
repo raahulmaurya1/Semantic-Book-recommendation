@@ -49,6 +49,9 @@ def batch_embed(documents, embeddings, batch_size=100):
             vectors.append(embedding)
             metadatas.extend([doc.metadata for doc in batch])
 
+    # Convert the list of vectors to a 2D numpy array (FAISS expects this)
+    vectors = np.array(vectors, dtype=np.float32)
+
     # Return FAISS index created from the embeddings
     return FAISS.from_embeddings(vectors, documents, embeddings)
 
