@@ -35,10 +35,13 @@ books = load_books()
 # --- Load or Generate FAISS Vector DB ---
 @st.cache_resource
 def get_or_create_faiss():
+    st.write("\U0001F4C1 Current working directory:", os.getcwd())
+
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
-    if not os.path.exists("faiss_index/index.faiss"):
-        st.info("🔄 Generating vector index, this may take a moment...")
+    index_path = "faiss_index/index.faiss"
+    if not os.path.exists(index_path):
+        st.info("\U0001F504 FAISS index not found. Creating new one...")
         loader = UnstructuredFileLoader("tagged_description.txt")
         raw_documents = loader.load()
 
@@ -47,9 +50,21 @@ def get_or_create_faiss():
 
         db = FAISS.from_documents(documents, embeddings)
         db.save_local("faiss_index")
-        st.success("✅ Vector index saved to disk.")
+        st.success("\u2705 FAISS index created and saved.")
     else:
-        db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+        st.info("\U0001F4E6 Loading existing FAISS index...")
+        try:
+            db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+        except Exception as e:
+            st.error(f"\u274C Failed to load FAISS index: {e}")
+            st.warning("Rebuilding index from scratch.")
+            loader = UnstructuredFileLoader("tagged_description.txt")
+            raw_documents = loader.load()
+            splitter = CharacterTextSplitter(chunk_size=512, chunk_overlap=50, separator="\n")
+            documents = splitter.split_documents(raw_documents)
+            db = FAISS.from_documents(documents, embeddings)
+            db.save_local("faiss_index")
+            st.success("\u2705 FAISS index recreated.")
 
     return db
 
@@ -81,7 +96,6 @@ def retrieve_semantic_recommendations(query: str, category: str = None, tone: st
     return book_recs
 
 # --- Streamlit UI ---
-# Add custom CSS
 st.markdown("""
     <style>
         body { font-family: 'Segoe UI', sans-serif; }
@@ -111,7 +125,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📚 Semantic Book Recommender")
+st.title("\U0001F4DA Semantic Book Recommender")
 
 query = st.text_input("Enter a description of a book (e.g., A story about forgiveness):")
 categories = ["All"] + sorted(books["categories"].dropna().astype(str).unique())
@@ -123,8 +137,8 @@ with col1:
 with col2:
     tone = st.selectbox("Select an emotional tone:", tones, index=0)
 
-if st.button("🔍 Find Recommendations") and query:
-    with st.spinner("🔄 Searching for the best matches..."):
+if st.button("\U0001F50D Find Recommendations") and query:
+    with st.spinner("\U0001F504 Searching for the best matches..."):
         progress_bar = st.progress(0)
         for i in range(100):
             time.sleep(0.01)
@@ -154,4 +168,4 @@ if st.button("🔍 Find Recommendations") and query:
                         st.markdown(f"**{row['title']}** by *{authors_str}*  \n{description}")
                         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.success("✅ Recommendations displayed!")
+    st.success("\u2705 Recommendations displayed!")
