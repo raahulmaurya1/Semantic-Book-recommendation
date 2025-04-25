@@ -11,13 +11,9 @@ import time
 # Set Streamlit page config first
 st.set_page_config(page_title="Semantic Book Recommender", layout="wide")
 
-# Load environment variables from Streamlit secrets
+# Retrieve the API keys securely from Streamlit secrets
 google_api_key = st.secrets["GOOGLE_API_KEY"]
 huggingface_api_token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
-
-# Set environment variables for API keys
-os.environ["GOOGLE_API_KEY"] = google_api_key
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
 # --- Load books data ---
 @st.cache_data
@@ -37,7 +33,7 @@ books = load_books()
 # --- Load or Generate FAISS Vector DB ---
 @st.cache_resource
 def get_or_create_faiss():
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=google_api_key)
 
     # Check if FAISS index already exists
     if not os.path.exists("faiss_index/index.faiss"):
@@ -147,10 +143,10 @@ if st.button("🔍 Find Recommendations") and query:
                 with st.container():
                     col_img, col_txt = st.columns([1, 5])
                     with col_img:
-                        st.image(row["large_thumbnail"], width=120)
+                        st.image(row["large_thumbnail"], width=500)
                     with col_txt:
                         st.markdown('<div class="recommendation-card">', unsafe_allow_html=True)
-                        description = " ".join(row["description"].split()[:30]) + "..."
+                        description = " ".join(row["description"].split()[:100]) + "..."
                         authors = row["authors"].split(";")
                         if len(authors) == 2:
                             authors_str = f"{authors[0]} and {authors[1]}"
@@ -160,5 +156,5 @@ if st.button("🔍 Find Recommendations") and query:
                             authors_str = row["authors"]
                         st.markdown(f"**{row['title']}** by *{authors_str}*  \n{description}")
                         st.markdown('</div>', unsafe_allow_html=True)
-
+    
     st.success("✅ Recommendations displayed!")
