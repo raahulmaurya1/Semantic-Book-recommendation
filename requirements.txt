@@ -7,3 +7,4 @@ python-dotenv==0.21.1
 setuptools==59.5.0
 altair==4.1.0  # Ensure altair version compatibility
 rich==12.5.1
+langchain-community
