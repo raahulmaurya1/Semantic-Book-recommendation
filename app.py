@@ -41,8 +41,13 @@ def batch_embed(documents, embeddings, batch_size=100):
     for i in range(0, len(documents), batch_size):
         batch = documents[i:i + batch_size]
         embeddings_batch = embeddings.embed_documents([doc.page_content for doc in batch])
-        vectors.extend(embeddings_batch)
-        metadatas.extend([doc.metadata for doc in batch])
+
+        # Ensure embeddings are in the correct format (list of vectors)
+        for embedding in embeddings_batch:
+            if isinstance(embedding, float):  # Check for any scalar values
+                raise ValueError("Embedding result is a scalar (float), expected a list or array.")
+            vectors.append(embedding)
+            metadatas.extend([doc.metadata for doc in batch])
 
     # Return FAISS index created from the embeddings
     return FAISS.from_embeddings(vectors, documents, embeddings)
