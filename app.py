@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from langchain_community.document_loaders import UnstructuredFileLoader
-from langchain_text_splitters import CharacterTextSplitter
+from langchain.text_splitters import CharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.vectorstores import FAISS
 import time
@@ -57,10 +57,14 @@ def batch_embed(documents, embeddings, batch_size=100):
 
     # Convert the list of vectors to a 2D numpy array (FAISS expects this)
     vectors = np.array(vectors, dtype=np.float32)
-    
+
     # Check the final shape of the vectors before passing to FAISS
     print(f"Final shape of vectors: {vectors.shape}")
-    
+
+    # Ensure the vector array is 2D
+    if vectors.ndim != 2:
+        raise ValueError(f"Expected 2D array of embeddings, got {vectors.ndim}D array.")
+
     # Return FAISS index created from the embeddings
     return FAISS.from_embeddings(vectors, documents, embeddings)
 
