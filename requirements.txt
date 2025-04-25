@@ -1,18 +1,10 @@
-# Basic libraries
 pandas==1.5.3
-numpy==1.24.1
+numpy==1.21.4
 streamlit==1.18.1
-python-dotenv==0.21.1
-setuptools==67.8.0
-
-# Langchain libraries (try the latest version of langchain-text-splitters)
 langchain==0.0.142
 langchain-community==0.0.2
-langchain-text-splitters
-
-# FAISS CPU (use CPU version for compatibility with Streamlit Cloud)
-faiss-cpu==1.7.3.post2
-
-# Any additional dependencies
-# transformers==4.28.1
-# torch==1.13.1
+langchain-text-splitters==0.0.4
+faiss-cpu==1.7.1  # Alternative version that should be compatible
+python-dotenv==0.21.1
+setuptools==59.5.0
+rich==12.5.1  # For better logging (optional but helpful)
