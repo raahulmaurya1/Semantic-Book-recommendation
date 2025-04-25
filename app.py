@@ -3,21 +3,20 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from langchain_community.document_loaders import UnstructuredFileLoader
-from langchain.text_splitters import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.vectorstores import FAISS
 import time
 
-# Set Streamlit page config
+# Set page config
 st.set_page_config(page_title="Semantic Book Recommender", layout="wide")
 
-# Retrieve API keys from Streamlit Cloud secrets
+# Load secrets
 google_api_key = st.secrets["GOOGLE_API_KEY"]
 huggingface_api_token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 os.environ["GOOGLE_API_KEY"] = google_api_key
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
-# --- Load books data ---
 @st.cache_data
 def load_books():
     books_df = pd.read_csv("books_with_emotions.csv")
@@ -32,83 +31,60 @@ def load_books():
 
 books = load_books()
 
-# --- Batch Embedding Function ---
 def batch_embed(documents, embeddings, batch_size=100):
     vectors = []
     metadatas = []
 
-    # Process the documents in batches of max 100
     for i in range(0, len(documents), batch_size):
         batch = documents[i:i + batch_size]
         embeddings_batch = embeddings.embed_documents([doc.page_content for doc in batch])
 
-        # Check the type and shape of embeddings_batch
-        if isinstance(embeddings_batch, list) and len(embeddings_batch) > 0:
-            embedding_shape = np.array(embeddings_batch[0]).shape
-            print(f"Embedding shape of first document: {embedding_shape}")
-            print(f"First embedding vector: {embeddings_batch[0]}")
-        
-        # Ensure embeddings are in the correct format (list of vectors)
         for embedding in embeddings_batch:
-            if isinstance(embedding, float):  # Check for any scalar values
+            if isinstance(embedding, float):
                 raise ValueError("Embedding result is a scalar (float), expected a list or array.")
             vectors.append(embedding)
-            metadatas.extend([doc.metadata for doc in batch])
+        metadatas.extend([doc.metadata for doc in batch])
 
-    # Convert the list of vectors to a 2D numpy array (FAISS expects this)
     vectors = np.array(vectors, dtype=np.float32)
-
-    # Check the final shape of the vectors before passing to FAISS
-    print(f"Final shape of vectors: {vectors.shape}")
-
-    # Ensure the vector array is 2D
     if vectors.ndim != 2:
         raise ValueError(f"Expected 2D array of embeddings, got {vectors.ndim}D array.")
 
-    # Return FAISS index created from the embeddings
     return FAISS.from_embeddings(vectors, documents, embeddings)
 
-# --- Load or Generate FAISS Vector DB ---
 @st.cache_resource
 def get_or_create_faiss():
-    st.write("\U0001F4C1 Current working directory:", os.getcwd())
-
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-
     index_path = "faiss_index/index.faiss"
+
     if not os.path.exists(index_path):
-        st.info("\U0001F504 FAISS index not found. Creating new one...")
+        st.info("Creating new FAISS index...")
         loader = UnstructuredFileLoader("tagged_description.txt")
         raw_documents = loader.load()
 
         splitter = CharacterTextSplitter(chunk_size=512, chunk_overlap=50, separator="\n")
         documents = splitter.split_documents(raw_documents)
 
-        db = batch_embed(documents, embeddings)  # Using batch embedding
+        db = batch_embed(documents, embeddings)
         db.save_local("faiss_index")
-        st.success("\u2705 FAISS index created and saved.")
+        st.success("FAISS index created and saved.")
     else:
-        st.info("\U0001F4E6 Loading existing FAISS index...")
         try:
             db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-        except Exception as e:
-            st.error(f"\u274C Failed to load FAISS index: {e}")
-            st.warning("Rebuilding index from scratch.")
+        except Exception:
+            st.warning("Failed to load FAISS index. Rebuilding it.")
             loader = UnstructuredFileLoader("tagged_description.txt")
             raw_documents = loader.load()
             splitter = CharacterTextSplitter(chunk_size=512, chunk_overlap=50, separator="\n")
             documents = splitter.split_documents(raw_documents)
-            db = batch_embed(documents, embeddings)  # Using batch embedding
+            db = batch_embed(documents, embeddings)
             db.save_local("faiss_index")
-            st.success("\u2705 FAISS index recreated.")
-
+            st.success("FAISS index rebuilt.")
     return db
 
 db_books = get_or_create_faiss()
 
-# --- Recommendation Logic ---
-def retrieve_semantic_recommendations(query: str, category: str = None, tone: str = None,
-                                      initial_top_k: int = 50, final_top_k: int = 16) -> pd.DataFrame:
+def retrieve_semantic_recommendations(query, category=None, tone=None,
+                                      initial_top_k=50, final_top_k=16):
     recs = db_books.similarity_search(query, k=initial_top_k)
     books_list = [int(rec.page_content.strip('"').split()[0]) for rec in recs]
     book_recs = books[books["isbn13"].isin(books_list)].head(initial_top_k)
@@ -131,50 +107,21 @@ def retrieve_semantic_recommendations(query: str, category: str = None, tone: st
 
     return book_recs
 
-# --- Streamlit UI ---
-st.markdown("""
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; }
-        .block-container { padding: 2rem 4rem; }
-        h1 { color: #3B3B98; }
-        .stButton>button {
-            background-color: #3B3B98;
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        .stButton>button:hover {
-            background-color: #5758BB;
-        }
-        .recommendation-card {
-            background-color: #f4f4f5;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 1rem;
-        }
-        .stImage > img {
-            border-radius: 8px;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# UI
+st.title("📚 Semantic Book Recommender")
 
-st.title("\U0001F4DA Semantic Book Recommender")
-
-query = st.text_input("Enter a description of a book (e.g., A story about forgiveness):")
+query = st.text_input("Describe a book you'd love (e.g., 'A story about forgiveness'):")
 categories = ["All"] + sorted(books["categories"].dropna().astype(str).unique())
 tones = ["All", "Happy", "Surprising", "Angry", "Suspenseful", "Sad"]
 
 col1, col2 = st.columns(2)
 with col1:
-    category = st.selectbox("Select a category:", categories, index=0)
+    category = st.selectbox("Category:", categories, index=0)
 with col2:
-    tone = st.selectbox("Select an emotional tone:", tones, index=0)
+    tone = st.selectbox("Emotional Tone:", tones, index=0)
 
-if st.button("\U0001F50D Find Recommendations") and query:
-    with st.spinner("\U0001F504 Searching for the best matches..."):
+if st.button("🔍 Recommend Books") and query:
+    with st.spinner("Fetching recommendations..."):
         progress_bar = st.progress(0)
         for i in range(100):
             time.sleep(0.01)
@@ -184,7 +131,7 @@ if st.button("\U0001F50D Find Recommendations") and query:
         st.subheader("Recommended Books")
 
         if recs.empty:
-            st.warning("No recommendations found. Please try a different query or category.")
+            st.warning("No recommendations found. Try a different query.")
         else:
             for _, row in recs.iterrows():
                 with st.container():
@@ -192,8 +139,6 @@ if st.button("\U0001F50D Find Recommendations") and query:
                     with col_img:
                         st.image(row["large_thumbnail"], width=500)
                     with col_txt:
-                        st.markdown('<div class="recommendation-card">', unsafe_allow_html=True)
-                        description = " ".join(row["description"].split()[:100]) + "..."
                         authors = row["authors"].split(";")
                         if len(authors) == 2:
                             authors_str = f"{authors[0]} and {authors[1]}"
@@ -201,7 +146,7 @@ if st.button("\U0001F50D Find Recommendations") and query:
                             authors_str = f"{', '.join(authors[:-1])}, and {authors[-1]}"
                         else:
                             authors_str = row["authors"]
+                        description = " ".join(row["description"].split()[:100]) + "..."
                         st.markdown(f"**{row['title']}** by *{authors_str}*  \n{description}")
-                        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.success("\u2705 Recommendations displayed!")
+    st.success("✔️ Done!")
