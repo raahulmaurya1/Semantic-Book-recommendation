@@ -3,7 +3,6 @@ numpy==1.21.4
 streamlit==1.18.1
 langchain==0.0.142
 langchain-community==0.0.2
-langchain-text-splitters==0.0.3  # Alternate version available for Python 3.9
 faiss-cpu==1.7.1  # Compatible faiss-cpu version
 python-dotenv==0.21.1
 setuptools==59.5.0
