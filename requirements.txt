@@ -1,9 +1,14 @@
+# Basic libraries
 pandas==1.5.3
 numpy==1.24.1
 streamlit==1.18.1
+python-dotenv==0.21.1
+setuptools==67.8.0
+
+# Langchain libraries
 langchain==0.0.142
 langchain-community==0.0.2
-langchain-text-splitters==0.0.6
-faiss-cpu==1.7.3.post2
-python-dotenv==0.21.1
-setuptools==67.8.0  # Added this to ensure distutils is available
+langchain-text-splitters==0.0.5  # or use the latest stable version if 0.0.5 is problematic
+
+# FAISS CPU (use CPU version for compatibility with Streamlit Cloud)
+faiss-cpu==1.7.3.post2  # If faiss-cpu causes issues, try faiss-gpu or remove it temporarily
