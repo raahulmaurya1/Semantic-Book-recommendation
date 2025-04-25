@@ -42,6 +42,12 @@ def batch_embed(documents, embeddings, batch_size=100):
         batch = documents[i:i + batch_size]
         embeddings_batch = embeddings.embed_documents([doc.page_content for doc in batch])
 
+        # Check the type and shape of embeddings_batch
+        if isinstance(embeddings_batch, list) and len(embeddings_batch) > 0:
+            embedding_shape = np.array(embeddings_batch[0]).shape
+            print(f"Embedding shape of first document: {embedding_shape}")
+            print(f"First embedding vector: {embeddings_batch[0]}")
+        
         # Ensure embeddings are in the correct format (list of vectors)
         for embedding in embeddings_batch:
             if isinstance(embedding, float):  # Check for any scalar values
@@ -51,7 +57,10 @@ def batch_embed(documents, embeddings, batch_size=100):
 
     # Convert the list of vectors to a 2D numpy array (FAISS expects this)
     vectors = np.array(vectors, dtype=np.float32)
-
+    
+    # Check the final shape of the vectors before passing to FAISS
+    print(f"Final shape of vectors: {vectors.shape}")
+    
     # Return FAISS index created from the embeddings
     return FAISS.from_embeddings(vectors, documents, embeddings)
 
