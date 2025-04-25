@@ -32,6 +32,21 @@ def load_books():
 
 books = load_books()
 
+# --- Batch Embedding Function ---
+def batch_embed(documents, embeddings, batch_size=100):
+    vectors = []
+    metadatas = []
+
+    # Process the documents in batches of max 100
+    for i in range(0, len(documents), batch_size):
+        batch = documents[i:i + batch_size]
+        embeddings_batch = embeddings.embed_documents([doc.page_content for doc in batch])
+        vectors.extend(embeddings_batch)
+        metadatas.extend([doc.metadata for doc in batch])
+
+    # Return FAISS index created from the embeddings
+    return FAISS.from_embeddings(vectors, documents, embeddings)
+
 # --- Load or Generate FAISS Vector DB ---
 @st.cache_resource
 def get_or_create_faiss():
@@ -48,7 +63,7 @@ def get_or_create_faiss():
         splitter = CharacterTextSplitter(chunk_size=512, chunk_overlap=50, separator="\n")
         documents = splitter.split_documents(raw_documents)
 
-        db = FAISS.from_documents(documents, embeddings)
+        db = batch_embed(documents, embeddings)  # Using batch embedding
         db.save_local("faiss_index")
         st.success("\u2705 FAISS index created and saved.")
     else:
@@ -62,7 +77,7 @@ def get_or_create_faiss():
             raw_documents = loader.load()
             splitter = CharacterTextSplitter(chunk_size=512, chunk_overlap=50, separator="\n")
             documents = splitter.split_documents(raw_documents)
-            db = FAISS.from_documents(documents, embeddings)
+            db = batch_embed(documents, embeddings)  # Using batch embedding
             db.save_local("faiss_index")
             st.success("\u2705 FAISS index recreated.")
 
