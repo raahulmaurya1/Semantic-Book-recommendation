@@ -8,12 +8,14 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.vectorstores import FAISS
 import time
 
-# Set Streamlit page config first
+# Set Streamlit page config
 st.set_page_config(page_title="Semantic Book Recommender", layout="wide")
 
-# Retrieve the API keys securely from Streamlit secrets
+# Retrieve API keys from Streamlit Cloud secrets
 google_api_key = st.secrets["GOOGLE_API_KEY"]
 huggingface_api_token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+os.environ["GOOGLE_API_KEY"] = google_api_key
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingface_api_token
 
 # --- Load books data ---
 @st.cache_data
@@ -33,9 +35,8 @@ books = load_books()
 # --- Load or Generate FAISS Vector DB ---
 @st.cache_resource
 def get_or_create_faiss():
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=google_api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
-    # Check if FAISS index already exists
     if not os.path.exists("faiss_index/index.faiss"):
         st.info("🔄 Generating vector index, this may take a moment...")
         loader = UnstructuredFileLoader("tagged_description.txt")
@@ -48,7 +49,6 @@ def get_or_create_faiss():
         db.save_local("faiss_index")
         st.success("✅ Vector index saved to disk.")
     else:
-        # Loading existing FAISS index without extra messages
         db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
 
     return db
@@ -111,10 +111,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Input section
 st.title("📚 Semantic Book Recommender")
-query = st.text_input("Enter a description of a book (e.g., A story about forgiveness):")
 
+query = st.text_input("Enter a description of a book (e.g., A story about forgiveness):")
 categories = ["All"] + sorted(books["categories"].dropna().astype(str).unique())
 tones = ["All", "Happy", "Surprising", "Angry", "Suspenseful", "Sad"]
 
@@ -125,12 +124,10 @@ with col2:
     tone = st.selectbox("Select an emotional tone:", tones, index=0)
 
 if st.button("🔍 Find Recommendations") and query:
-    # Show a spinner while generating the recommendations
     with st.spinner("🔄 Searching for the best matches..."):
-        # Optional: Add progress bar during processing
         progress_bar = st.progress(0)
         for i in range(100):
-            time.sleep(0.1)  # Simulate some work being done
+            time.sleep(0.01)
             progress_bar.progress(i + 1)
 
         recs = retrieve_semantic_recommendations(query, category, tone)
@@ -156,5 +153,5 @@ if st.button("🔍 Find Recommendations") and query:
                             authors_str = row["authors"]
                         st.markdown(f"**{row['title']}** by *{authors_str}*  \n{description}")
                         st.markdown('</div>', unsafe_allow_html=True)
-    
+
     st.success("✅ Recommendations displayed!")
