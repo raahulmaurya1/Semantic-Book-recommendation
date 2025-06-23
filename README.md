@@ -1,5 +1,5 @@
 
-# 🌍📖 World’s First Emotion + Semantics-Based Book Recommendation System
+# 🌍📖 Semantics Book Recommendation System
 
 > _“Not just what you want to read, but how you want to feel.”_  
 > _Redefining the future of reading using AI, emotions, and intent._
