@@ -4,6 +4,9 @@
 > _“Not just what you want to read, but how you want to feel.”_  
 > _Redefining the future of reading using AI, emotions, and intent._
 
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Platform](https://img.shields.io/badge/Platform-Streamlit-red)
 ---
 
 ## 🚀 About the Project
@@ -35,7 +38,7 @@ A **real-time, browser-based interface** built with **Gradio**, allowing users t
 
 ## 📸 Screenshot
 
-![Screenshot](https://github.com/bishal-red123/Book-Recommendation-system-/blob/main/Screenshot%202025-04-05%20204056.png)
+<img src="https://github.com/raahulmaurya1/Semantic-Book-recommendation/blob/e08b766e8bdda2271cd275f86acc576583db228b/Picture1.png" width="500" height="500"/>
 
 ---
 
@@ -148,4 +151,10 @@ See [LICENSE](LICENSE) for more information.
 > A system that listens to your emotions, understands your thoughts, and recommends books that **resonate**.
 
 Be part of the reading revolution.
+
+## 📬 Contact
+
+Created by Rahul Maurya 
+📧 Email: raahulmaurya2@gmail.com  
+🔗 GitHub: @raahulmaurya1
 
